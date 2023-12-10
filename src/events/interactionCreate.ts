@@ -1,8 +1,6 @@
 import { BotEvent } from "../types";
 import { Interaction } from "discord.js";
 
-const piggyJohnId = '417381385603383296';
-
 export const interactionHandler: BotEvent = {
   name: 'interactionCreate',
   execute: async (interaction: Interaction) => {
