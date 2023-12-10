@@ -5,7 +5,7 @@
 import { joinVoiceChannel, createAudioPlayer, createAudioResource, VoiceConnectionStatus, AudioPlayer, VoiceConnection, AudioResource } from '@discordjs/voice';
 import sqlite3 from 'sqlite3';
 import search, { YouTubeSearchResults } from 'youtube-search';
-import ytPlayer, { YouTubeStream } from 'play-dl';
+import ytPlayer, { YouTubeStream, video_basic_info } from 'play-dl';
 import { song } from '../src/types';
 import { encode } from 'he';
 
@@ -66,9 +66,10 @@ export class MusicPlayer {
 
     // Check if song is a youtube url
     if (title.startsWith('https://www.youtube.com/watch?v=') || title.startsWith("https://youtu.be/")) {
-      console.log(title);
       song.url = title
-      song.title = "A song" // TODO: Get the video's name given its url
+
+      // Get the video's title given the url
+      song.title = (await video_basic_info(title)).video_details.title
 
     } else if (MusicPlayer.db != null){
 
