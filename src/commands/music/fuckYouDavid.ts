@@ -4,8 +4,7 @@ config();
 import { SlashCommandBuilder } from "discord.js";
 import { musicPlayer } from "../../main";
 
-const DavidID = 335715508731117568n;
-const DavidId = process.env.DavidID; // TODO: Put Daivd's id in the env file
+const DavidID = process.env.DavidID;
 
 export const fuckYouDavidCommand: Command = {
     command: new SlashCommandBuilder().setName('fuckyoudavid').setDescription(`Fuck you David`),
