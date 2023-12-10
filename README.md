@@ -1,5 +1,6 @@
 # DJ Maow
 This is Mario's amazing discord music bot. Better than Dave Bot!
+Disclaimer: This repository is for educational purposes only.
 
 # Current Features
 * `/play <song: string>` to play a song. Plays the first result on youtube
