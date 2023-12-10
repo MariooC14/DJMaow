@@ -65,7 +65,7 @@ export class MusicPlayer {
     let song: song | void = {} as song;
 
     // Check if song is a youtube url
-    if (title.startsWith('https://www.youtube.com/watch?v=')) {
+    if (title.startsWith('https://www.youtube.com/watch?v=') || title.startsWith("https://youtu.be/")) {
       console.log(title);
       song.url = title
       song.title = "A song" // TODO: Get the video's name given its url
