@@ -8,10 +8,6 @@ export const interactionHandler: BotEvent = {
   execute: async (interaction: Interaction) => {
     if (!interaction.isChatInputCommand()) return;
 
-    if (interaction.user.id === piggyJohnId) {
-      await interaction.reply('Fuck off John');
-      return;
-    }
     const command = interaction.client.commands.get(interaction.commandName);
 
     if (!command) {
