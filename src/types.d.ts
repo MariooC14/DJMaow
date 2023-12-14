@@ -1,11 +1,11 @@
-import { AutocompleteInteraction, ChatInputCommandInteraction, SlashCommandBuilder } from "discord.js";
+import { AutocompleteInteraction, ChatInputCommandInteraction, SlashCommandBuilder } from 'discord.js';
 
 export interface Command {
-  command: | Omit<SlashCommandBuilder, "addSubcommandGroup" | "addSubcommand">
-           | SlashCommandSubcommandsOnlyBuilder,
-  execute: (interaction: ChatInputCommandInteraction) => void,
-  autocomplete?: (interaction: AutocompleteInteraction) => void,
-  cooldown?: number // in seconds
+    autocomplete?: (interaction: AutocompleteInteraction) => void,
+    command: | Omit<SlashCommandBuilder, 'addSubcommandGroup' | 'addSubcommand'>
+        | SlashCommandSubcommandsOnlyBuilder,
+    cooldown?: number,
+    execute: (interaction: ChatInputCommandInteraction) => void
 }
 
 export interface BotEvent {
@@ -14,14 +14,14 @@ export interface BotEvent {
   execute: (...args?) => void
 }
 
-export interface song {
-  kind?: "youtube#channel" | "youtube#video",
+export interface Song {
+  kind?: 'youtube#channel' | 'youtube#video',
   title?: string,
   videoId: string,
   url: string | undefined
 }
 
-declare module "discord.js" {
+declare module 'discord.js' {
     export interface Client {
         commands: Collection<string, SlashCommand>
         // cooldowns: Collection<string, number>
