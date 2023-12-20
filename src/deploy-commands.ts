@@ -2,8 +2,8 @@
  * This is the file used to register the bot's commands to discord.
  */
 import { REST, Routes } from 'discord.js';
-import dotenv from 'dotenv';
-dotenv.config();
+import { config } from 'dotenv';
+config();
 import { registeredCommands } from './commands/commands';
 
 const commands: any = [];
