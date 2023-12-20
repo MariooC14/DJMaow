@@ -8,5 +8,5 @@ export const skipCommand: Command = {
 		musicPlayer.playNextSong();
 		console.info(`${interaction.user.displayName} skipped the current song.`);
 		await interaction.reply('Skipped song.');
-	},
+	}
 };

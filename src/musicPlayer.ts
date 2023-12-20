@@ -17,6 +17,7 @@ import search, { YouTubeSearchResults } from 'youtube-search';
 import ytPlayer, { video_basic_info, YouTubeStream } from 'play-dl';
 import { Song } from './types';
 import { encode } from 'he';
+import queryString from 'querystring'
 
 // YouTube Search Options
 const opts = {
@@ -66,12 +67,20 @@ export class MusicPlayer {
 	};
 
 
+  /**
+   	* Adds a song to the queue
+    */
+	public addSongToQueue = (song: Song) => {
+		this._queue.push(song);
+	}
+
+
 	/**
-   * Given a song query, the music player will try to find the song and add it to its queue
+   * Given a song query, the music player will try to find the song.
    * @param title the name of the song
-   * @returns
+   * @returns the first song result
    */
-	public addToQueue = async (title: string) => {
+	public searchForSong = async (title: string) => {
 		let song: Song | void = {} as Song;
 
 		// Check if song is a youtube url
@@ -80,7 +89,6 @@ export class MusicPlayer {
 
 			// Get the video's title given the url
 			song.title = (await video_basic_info(title)).video_details.title;
-
 		}
 		else if (MusicPlayer.db != null) {
 
@@ -94,9 +102,10 @@ export class MusicPlayer {
 				// YouTube might return channels too. Only get the first result that is of type video
 				const songResult = songResults.find((result: YouTubeSearchResults) => result.kind === 'youtube#video');
 				this.cacheSongResults(songResults).then(() => console.log('Cached search results'));
-				song = {} as Song;
-				song.url = songResult?.link;
-				song.title = songResult?.title;
+				song = {
+          title: songResult?.title,
+          url: songResult?.link
+        } as Song
 			}
 			else {
 				song.url = `https://www.youtube.com/watch?v=${song.videoId}`;
@@ -109,11 +118,67 @@ export class MusicPlayer {
 			return;
 		}
 
-		console.log(`Added "${song.title}" to queue.`);
-		this.queue.push(song);
 		return song;
 	};
 
+
+  // TODO: Use nextPageToken to load the next songs in the playlist on command
+
+/**
+ * returns a list of the video ids in the playlist
+ * @param {string} link 
+ */
+  public searchForPlaylist = async (link: string) => {
+  if (!link) return;
+  // Parse the link.
+  let queryData = queryString.parse(link.replace(/^.*\?/, ''));
+
+  // If there is not a list key, return.
+  if (!queryData.list) return;
+
+  // Form the url for fetching the items in a playlist
+  let apiUrl = 'https://youtube.googleapis.com/youtube/v3/playlistItems?part=contentDetails&playlistId='
+                + queryData['list']
+                + `&key=${process.env.YT_API_KEY}`;
+
+  // Make the fetch request
+  return fetch(apiUrl)
+    .then(res => res.json())
+    .then(data => {
+      // The API returns us an error if the playlist does not exist or is private
+      if (data.error) return;
+      
+      // TODO: Change this so the function returns the nextPageToken in the future
+      let videoIds: string[] = data.items?.map((item: any) => {
+        return item?.contentDetails?.videoId
+      })
+      return videoIds;
+    })
+    .catch(error => console.error(error))
+}
+
+
+  /**
+   * Adds a playlist to the queue
+   * @returns whether the playlist videos were added or not
+   */
+  public addPlaylistToQueue = async (link: string) => {
+    const videoIds = await this.searchForPlaylist(link);
+    if (!videoIds) return false;
+
+    for (const videoId of videoIds) {
+      let song = {} as Song;
+      song.url = `https://www.youtube.com/watch?v=${videoId}`;
+      song.title = (await video_basic_info(song.url)).video_details.title;
+      this.addSongToQueue(song);
+    }
+
+    return true;
+  }
+
+	/**
+	 * Console logs every song in the queue. Used for debugging.
+	 */
 	public printQueue = () => {
 		this.queue.forEach(song => {
 			console.log(song.title);
@@ -140,7 +205,7 @@ export class MusicPlayer {
    */
 	public startPlaying = async () => {
 		// Otherwise, play the first song in the queue
-		this.currentSong = this.queue.shift();
+		this.playNextSong();
 		// Error handling if no song was added from the start.
 		if (!this.currentSong) {
 			console.log('No song to start off with');
