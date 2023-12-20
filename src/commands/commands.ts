@@ -11,14 +11,14 @@ import { skipToCommand } from './music/skipTo';
 import { removeSongCommand } from './music/removeSong';
 
 export const registeredCommands: Command[] = [
-	playCommand,
-	pauseCommand,
-	resumeCommand,
-	skipCommand,
-	stopPlayingCommand,
-	showQueueCommand,
-	clearQueueCommand,
-	skipToCommand,
-	removeSongCommand,
-	fuckYouDavidCommand,
+  playCommand,
+  pauseCommand,
+  resumeCommand,
+  skipCommand,
+  stopPlayingCommand,
+  showQueueCommand,
+  clearQueueCommand,
+  skipToCommand,
+  removeSongCommand,
+  fuckYouDavidCommand,
 ];

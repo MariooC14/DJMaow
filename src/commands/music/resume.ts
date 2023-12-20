@@ -3,9 +3,9 @@ import { musicPlayer } from '../../main';
 import { Command } from '../../types';
 
 export const resumeCommand: Command = {
-	command: new SlashCommandBuilder().setName('resume').setDescription('Resume the current song'),
-	async execute(interaction) {
-		musicPlayer.unpause();
-		await interaction.reply('Resumed current song');
-	},
+  command: new SlashCommandBuilder().setName('resume').setDescription('Resume the current song'),
+  async execute(interaction) {
+    musicPlayer.unpause();
+    await interaction.reply('Resumed current song');
+  },
 };
