@@ -1,0 +1,35 @@
+{
+  "overview": {
+    "description": "# Commands Overview\n**Play**: Play a song from YouTube by providing a name or the link to it, or play a YouTube playlist, or use to resume a song that is currently playing.\n**Pause**: Pause the song that is currently playing.\n**Resume**: Resume the song that is currently playing.\n**Skip**: Skip the song that is currently playing\n**Stop**: Stop playing and remove all songs from the queue.\n**Queue**: Clear the current queue of songs.\n**Skipto**: Skip to the song in the queue at a given position (between 1 and the number of songs in the queue).\n**Remove**: Remove a song from the queue at a given position.\n**Help**: Show this message.\nUse `/help <command>` to get more details about how to use the command. (Work in progress)"
+  },
+  "play": {
+    "description": "## How to use `/play`\nThere are three modes for using this command.\n1. `/play` to resume the currently playing song.\n2. `/play <name/link>`\n\tWhere name/link can be one of two things:\n    * The name of the song you want to play. As it searches through YouTube and plays the first result, you should be specific with the name.\n  * The link to the YouTube video.\n3. `/play <playlist link>`\n\tWhere `playlist_link` is the link to the YouTube playlist. (This feature is still work in progress so it will only add the first five videos to the queue."
+  },
+  "pause": {
+    "description": "## How to use `/pause`\nIf there is a currently playing song, use `/pause` to pause it."
+  },
+  "resume": {
+    "description": "## How to use `/resume`\nIf you paused a song with `/pause`, use `/resume` to ||resume it||."
+  },
+  "skip": {
+    "description": "## How to use `/skip`\nUse `/skip` to skip over the currently playing song and move on to the next song in the queue."
+  },
+  "stop": {
+    "description": "## How to use `/stop`\nUse `/stop` to make the music player stop playing the current song, clear the queue and leave the voice channel. It is equivalent to exiting a program."
+  },
+  "queue": {
+    "description": "## How to use `/queue`\nUse `/queue` to display all the songs that are currently in the queue."
+  },
+  "clear": {
+    "description": "## How to use `/clear`\nUse `/clear` all songs that are currently in the queue."
+  },
+  "skipto": {
+    "description": "## How to use `/skipto`\nUse `/skipto <position>` to skip to the song in the queue at the specified position.\n`position` is a number between 1 and the number of songs in the queue which is the position of the specified song. If you are specifying a position bigger than the number of songs in the queue, nothing will happen."
+  },
+  "remove": {
+    "description": "## How to use `/remove`\nUse `/remove <position>` to remove the song in the queue at the specified position.\n`position` is a number between 1 and the number of songs in the queue which is the position of the specified song. If you are specifying a position bigger than the number of songs in the queue, nothing will happen."
+  },
+  "fuckyoudavid": {
+    "description": "## How to use `/fuckyoudavid`\nAs David likes to say, \"fuck around and find out\". Use at your own risk."
+  }
+}
