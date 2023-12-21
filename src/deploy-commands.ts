@@ -4,7 +4,7 @@
 import { REST, Routes } from 'discord.js';
 import { config } from 'dotenv';
 config();
-import { registeredCommands } from './commands/commands';
+import { registeredCommands } from './commands';
 
 const commands: any = [];
 

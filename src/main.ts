@@ -2,7 +2,7 @@ import { config } from 'dotenv';
 config();
 import { Client, Collection, Events, GatewayIntentBits } from 'discord.js';
 import { MusicPlayer } from './musicPlayer';
-import { registeredCommands } from './commands/commands';
+import { registeredCommands } from './commands';
 import { AudioPlayerState } from '@discordjs/voice';
 import { interactionHandler } from './events/interactionCreate';
 
