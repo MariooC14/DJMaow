@@ -15,7 +15,7 @@ import {
 import sqlite3 from 'sqlite3';
 import search, { YouTubeSearchResults } from 'youtube-search';
 import ytPlayer, { video_basic_info, YouTubeStream } from 'play-dl';
-import { Song } from './types';
+import { Playlist, Song, YouTubePlaylistItemResponse } from './types';
 import { encode } from 'he';
 import queryString from 'querystring';
 
@@ -30,6 +30,8 @@ const opts = {
 
 export class MusicPlayer {
   private _queue: Song[] = [];
+  /** Playlist queue is a set to ensure no duplicate sets */
+  private _playlistsInQueue: Map<string, Playlist>;
   private _currentSong: Song| undefined;
   private _length: number;
   private _playing: boolean = false;
@@ -85,7 +87,7 @@ export class MusicPlayer {
 
     // Check if song is a youtube url
     if (title.startsWith('https://www.youtube.com/watch?v=') || title.startsWith('https://youtu.be/')) {
-      song.url = title;
+      song.link = title;
 
       // Get the video's title given the url
       song.title = (await video_basic_info(title)).video_details.title;
@@ -104,11 +106,11 @@ export class MusicPlayer {
         this.cacheSongResults(songResults).then(() => console.log('Cached search results'));
         song = {
           title: songResult?.title,
-          url: songResult?.link,
+          link: songResult?.link,
         } as Song;
       }
       else {
-        song.url = `https://www.youtube.com/watch?v=${song.videoId}`;
+        song.link = `https://www.youtube.com/watch?v=${song.videoId}`;
       }
     }
 
@@ -122,10 +124,9 @@ export class MusicPlayer {
   };
 
 
-  // TODO: Use nextPageToken to load the next songs in the playlist on command
-
   /**
-	 * Returns a list of the video ids in the playlist
+	 * Returns an object containing the validated list id, the number of videos in the playlist,
+   * the amount of videos per page, nextPageToken for the API, the first page of videos
 	 * @param {string} link
 	 */
   public searchForPlaylist = async (link: string) => {
@@ -137,44 +138,81 @@ export class MusicPlayer {
     if (!queryData.list) return;
 
     // Form the url for fetching the items in a playlist
-    const apiUrl = 'https://youtube.googleapis.com/youtube/v3/playlistItems?part=contentDetails&playlistId='
-				+ queryData['list']
-				+ `&key=${process.env.YT_API_KEY}`;
+    const apiUrl = 'https://youtube.googleapis.com/youtube/v3/playlistItems?part=contentDetails'
+                    + '&playlistId=' + queryData.list
+                    + `&key=${process.env.YT_API_KEY}`;
 
     // Make the fetch request
     return fetch(apiUrl)
       .then(res => res.json())
-      .then(data => {
+      .then((data: YouTubePlaylistItemResponse) => {
         // The API returns us an error if the playlist does not exist or is private
         if (data.error) return;
 
-        // TODO: Change this so the function returns the nextPageToken in the future
-        const videoIds: string[] = data.items?.map((item: any) => {
-          return item?.contentDetails?.videoId;
-        });
-        return videoIds;
+        const response = {
+          playlistId: queryData.list as string,
+          nextPageToken: data.nextpageToken,
+          totalVideos: data.pageInfo.totalResults,
+          videosPerPage: data.pageInfo.resultsPerPage,
+          videoIds:  data.items?.map((item) => item?.contentDetails?.videoId),
+        };
+        return response;
+      })
+      .catch(error => console.error(error));
+  };
+
+  /**
+   * Gets the next songs of the playlist
+   * @param playlist the playlist to fetch the next songs for
+   */
+  public fetchNextSongsFromPlaylist = async (playlist: Playlist) => {
+
+    // Form the API url
+    const apiUrl = 'https://youtube.googleapis.com/youtube/v3/playlistItems?part=contentDetails'
+      + `&playlistId=${playlist.id}`
+      + `&pageToken=${playlist.nextPageToken}`
+      + `&key=${process.env.YT_API_KEY}`;
+
+    // Fetch the next page of videos
+    fetch(apiUrl)
+      .then(res => res.json())
+      .then(async (data: YouTubePlaylistItemResponse) => {
+        if (data.error) return;
+
+        // Update the next page token
+        playlist.nextPageToken = data.nextpageToken;
+
+        // Add each song in the reult
+        for (const videoId of data.items) {
+          const song = {} as Song;
+          song.link = `https://www.youtube.com/watch?v=${videoId}`;
+          song.title = (await video_basic_info(song.link)).video_details.title;
+          this.addSongToQueue(song);
+        }
       })
       .catch(error => console.error(error));
   };
 
 
   /**
-	 * Adds a playlist to the queue
-	 * @returns whether the playlist videos were added or not
-	 */
-  public addPlaylistToQueue = async (link: string) => {
-    const videoIds = await this.searchForPlaylist(link);
-    if (!videoIds) return false;
+   * Adds a playlist to the queue
+   * @param {Playlist} playlist details about the playlist
+   * @param {string[]} firstSongPage the first set of video ids from the playlist (usually 5)
+   * @returns whether the playlist videos were added or not
+   */
+  public addPlaylistToQueue = async (playlist: Playlist, firstSongPage: string[]) => {
+    this._playlistsInQueue.set(playlist.id, playlist);
 
-    for (const videoId of videoIds) {
+    for (const videoId of firstSongPage) {
       const song = {} as Song;
-      song.url = `https://www.youtube.com/watch?v=${videoId}`;
-      song.title = (await video_basic_info(song.url)).video_details.title;
+      song.link = `https://www.youtube.com/watch?v=${videoId}`;
+      song.title = (await video_basic_info(song.link)).video_details.title;
       this.addSongToQueue(song);
     }
 
     return true;
   };
+
 
   /**
 	 * Console logs every song in the queue. Used for debugging.
@@ -221,9 +259,9 @@ export class MusicPlayer {
 	 * Plays song. It is not responsible for freeing the resource beforehand.
 	 */
   public play = async (song?: Song) => {
-    if (!song || !song.url) return;
+    if (!song || !song.link) return;
     try {
-      this.stream = await ytPlayer.stream(song.url, {});
+      this.stream = await ytPlayer.stream(song.link, {});
       this.resource = createAudioResource(this.stream.stream, { inputType: this.stream.type });
       this.connection?.subscribe(this._audioPlayer);
       this._audioPlayer.play(this.resource);
@@ -297,6 +335,27 @@ export class MusicPlayer {
       this.audioPlayer.stop();
       return false;
     }
+
+    // Check if song is part of a playlist
+    const playlist = this._playlistsInQueue.get(this.currentSong?.playlistId || '');
+
+    if (playlist) {
+      playlist.currentSongIndex++;
+
+      // Check if the playlist is at its end
+      if (playlist.currentSongIndex + 1 >= playlist.totalSongs) {
+        console.log(`Playlist ${playlist.id} has loaded all its videos`);
+        // Remove it from the playlists queue.
+        this._playlistsInQueue.delete(playlist.id);
+      }
+      // Check if it's time to fetch more videos. We do this for the last song in the page
+      else if (playlist.autoFetch && (playlist.currentSongIndex + 1) % playlist.videosPerPage == 0) {
+        console.info('Fetching more videos from the playlist');
+        // Fetch more videos
+        this.fetchNextSongsFromPlaylist(playlist);
+      }
+    }
+
     this.play(this.currentSong);
     this.playing = true;
     return true;
@@ -443,6 +502,7 @@ export class MusicPlayer {
 
   constructor() {
     this._length = 0;
+    this._playlistsInQueue = new Map();
     this._audioPlayer = createAudioPlayer();
     this._audioPlayer.on('error', (error: AudioPlayerError) => {
       console.error(`Error: ${error.message}`);

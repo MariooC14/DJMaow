@@ -2,6 +2,7 @@ import { SlashCommandBuilder } from 'discord.js';
 import { Command, Song } from '../../types';
 import { decode } from 'he';
 import { musicPlayer } from '../../main';
+// import setupPlaylistWizard from '../../message-components/playlist-wizard';
 
 const spotifyLink = 'https://open.spotify.com';
 
@@ -41,31 +42,22 @@ export const playCommand: Command = {
       }
     }
 
-    await interaction.deferReply();
-
     // IMPORTANT: I decided that, for now, the bot can only either add a song or a playlist per interaction.
 
-    let playlistAdded = false;
     let songResult: Song | undefined;
 
-    // If the user input the playlist link, search for its videos
     if (playlistLink) {
-      await interaction.editReply('Trying to add your playlist...');
-      playlistAdded = await musicPlayer.addPlaylistToQueue(playlistLink);
-
-      if (playlistAdded) {
-        // TODO: Reply with the playlist's name
-        await interaction.followUp('Success! Added your playlist to the queue');
-      }
-      else {
-        return await interaction.editReply('Couldn\'t add your playlist. Maybe it was made private?');
-      }
+      // Start the playlsit wizard
+      return await interaction.reply('Playlists are currently work in progress');
+      // return setupPlaylistWizard(interaction, songName);
     }
     else if (songName) {
       if (songName.startsWith(spotifyLink)) {
         await interaction.reply('I don\'t support Spotify Links brev.');
         return;
       }
+
+      await interaction.deferReply();
 
       await interaction.editReply('Searching for song...');
       // If the bot is joining for the first time, wait for it to find the song
@@ -93,7 +85,6 @@ export const playCommand: Command = {
       await musicPlayer.joinChannel(voiceChannel.id, interaction.guildId || '', interaction.guild?.voiceAdapterCreator);
       await musicPlayer.startPlaying();
       await interaction.editReply(`Currently playing **${decode(musicPlayer.currentSong?.title || '')}**`);
-
     }
 
     else {

@@ -4,9 +4,10 @@
 import { REST, Routes } from 'discord.js';
 import { config } from 'dotenv';
 config();
+import { Command } from './types';
 import { registeredCommands } from './commands';
 
-const commands: any = [];
+const commands: Command[] = [];
 
 registeredCommands?.forEach((command) => {
   if ('command' in command && 'execute' in command) {
