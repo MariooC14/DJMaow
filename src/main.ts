@@ -1,11 +1,11 @@
 import { config } from 'dotenv';
 config();
 import { Client, Collection, Events, GatewayIntentBits } from 'discord.js';
-import { registeredCommands } from './commands/commands';
+import { MusicPlayer } from './musicPlayer';
+import { registeredCommands } from './commands';
 import { AudioPlayerState } from '@discordjs/voice';
 import { interactionHandler } from './events/interactionCreate';
 import { createMusicPlayer } from './config';
-import { MusicPlayer } from './musicPlayer';
 
 // TODO: Add multi-server support?
 const seconds = 1000;

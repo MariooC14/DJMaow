@@ -3,7 +3,7 @@ This is Mario's amazing discord music bot. Better than Dave Bot!
 Disclaimer: This repository is for educational purposes only.
 
 # Current Features
-* `/play <song: string>` to play a song. Plays the first result on youtube
+* `/play <song: string>` to play a song. This can be the name of a song or a YouTube URL to it.
 * `/play` to resume the current song.
 * `/skip` to skip the currently playing song.
 * `/pause` to pause the current song.

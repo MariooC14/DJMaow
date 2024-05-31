@@ -9,6 +9,8 @@ import { clearQueueCommand } from './music/clearQueue';
 import { fuckYouDavidCommand } from './music/fuckYouDavid';
 import { skipToCommand } from './music/skipTo';
 import { removeSongCommand } from './music/removeSong';
+import { helpCommand } from './music/help';
+import { feedbackCommand } from './general/feedback';
 
 export const registeredCommands: Command[] = [
   playCommand,
@@ -21,4 +23,6 @@ export const registeredCommands: Command[] = [
   skipToCommand,
   removeSongCommand,
   fuckYouDavidCommand,
+  helpCommand,
+  feedbackCommand,
 ];

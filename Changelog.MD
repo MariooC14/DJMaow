@@ -1,5 +1,14 @@
 # DJ MAOW
 
+## V1.5 - Help Command
+
+### Features
+* `/help` will give you an overview of all the commands DJ Maow supports
+* `/help <command>` will give you details on how to use a command
+
+### Bug fixes
+* Using `/play` when there is no song playing no longer causes DJ Maow to search for a song called "undefined".
+
 # V1.4.1 - Channel Permissions Fix
 
 ## Bug Fixes
