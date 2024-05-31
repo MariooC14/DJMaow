@@ -5,3 +5,5 @@ build
 .idea
 .data
 tsconfig.tsbuildinfo
+maowconfig.json
+*.db

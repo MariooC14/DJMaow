@@ -38,29 +38,17 @@ export class MusicPlayer {
   private stream: YouTubeStream | undefined;
   private connection: VoiceConnection | null | undefined;
   private resource: AudioResource | undefined;
-  // Only one instance of the DBMS is created between all discord servers
-  public static db: sqlite3.Database | null = new sqlite3.Database(
-    process.env.DB_PATH || '',
-    sqlite3.OPEN_READWRITE,
-    (err) => {
-      if (err) {
-        console.error(err.message);
-        MusicPlayer.db = null;
-      }
-      console.log('connected to the songs db');
-    },
-  );
-
+  private db: sqlite3.Database | null;
+  private cachingEnabled = false;
 
   /**
 	 * Stores the YouTube Search Results into the database if the database exists
 	 */
   private cacheSongResults = async (songs: YouTubeSearchResults[]) => {
-    if (!MusicPlayer.db) return;
+    if (!this.db || !this.cachingEnabled) return;
     const sqlQuery = 'INSERT OR IGNORE INTO songs (title, videoId) VALUES (?, ?)';
     songs.forEach((song: YouTubeSearchResults) => {
-      if (song.kind === 'youtube#channel') return;
-      MusicPlayer.db?.run(sqlQuery, [song.title, song.id], (err) => {
+      this.db?.run(sqlQuery, [song.title, song.id], (err) => {
         if (err) console.log(err.message);
       });
     });
@@ -83,33 +71,34 @@ export class MusicPlayer {
   public searchForSong = async (title: string) => {
     let song: Song | void = {} as Song;
 
-    // Check if song is a youtube url
+    // Check if song is a YouTube url
     if (title.startsWith('https://www.youtube.com/watch?v=') || title.startsWith('https://youtu.be/')) {
       song.url = title;
 
       // Get the video's title given the url
       song.title = (await video_basic_info(title)).video_details.title;
     }
-    else if (MusicPlayer.db != null) {
-
+    else if (this.db != null) {
       song = await this.findSongInDB(title);
 
       // If there was no song found in the database, use the YouTube search API
       if (!song || !song?.title) {
-        console.log('Looking for song name on YouTube');
-        const songResults = (await search(title, opts)).results;
+        console.log('Looking for song on YouTube');
 
-        // YouTube might return channels too. Only get the first result that is of type video
-        const songResult = songResults.find((result: YouTubeSearchResults) => result.kind === 'youtube#video');
-        this.cacheSongResults(songResults).then(() => console.log('Cached search results'));
-        song = {
-          title: songResult?.title,
-          url: songResult?.link,
-        } as Song;
+        const ytSearchResults = await this.getSongsFromYouTube(title);
+        const topMatch = ytSearchResults[0];
+        this.cacheSongResults(ytSearchResults);
+        song = { title: topMatch?.title, url: topMatch?.link } as Song;
       }
       else {
         song.url = `https://www.youtube.com/watch?v=${song.videoId}`;
       }
+    }
+    // If caching is disabled, search youtube for the song
+    else {
+      const ytSearchResults = await this.getSongsFromYouTube(title);
+      const topMatch = ytSearchResults[0];
+      song = { title: topMatch?.title, url: topMatch?.link } as Song;
     }
 
     // If not even YouTube could find that song, don't add to queue.
@@ -120,6 +109,17 @@ export class MusicPlayer {
 
     return song;
   };
+
+  /**
+   * Returns the top few search results from YouTube
+   * @param title The name to search for
+   * @returns Array of songs
+   */
+  private async getSongsFromYouTube(title: string) {
+    const results = (await search(title, opts)).results;
+    // YouTube returns channels too. Only return the video results.
+    return results.filter((result: YouTubeSearchResults) => result.kind === 'youtube#video');
+  }
 
 
   // TODO: Use nextPageToken to load the next songs in the playlist on command
@@ -141,7 +141,6 @@ export class MusicPlayer {
 				+ queryData['list']
 				+ `&key=${process.env.YT_API_KEY}`;
 
-    // Make the fetch request
     return fetch(apiUrl)
       .then(res => res.json())
       .then(data => {
@@ -312,7 +311,7 @@ export class MusicPlayer {
     return new Promise<Song | void>((resolve) => {
       // Sqlite stores the titles in encoded format. For example, the ' character is stored as &#39;
       // The encode function makes sure the query takes that into account
-      MusicPlayer.db?.get(sqlQuery, ['%' + encode(title, { decimal:true }) + '%'], (err, row) => {
+      this.db?.get(sqlQuery, ['%' + encode(title, { decimal:true }) + '%'], (err, row) => {
         if (err) return console.error(err.message);
         if (row) resolve({ ...row } as Song);
         resolve();
@@ -440,9 +439,33 @@ export class MusicPlayer {
     return this._audioPlayer;
   }
 
-
-  constructor() {
+  /**
+   * Initiates the music player.
+   * If a database path is provided and caching is enabled, the player will cache song in the database
+   * It does not check if the db_path exists
+   * @param cachingEnabled
+   * @param db_path
+   */
+  constructor(cachingEnabled: boolean, db_path?: string) {
     this._length = 0;
+    if (cachingEnabled && db_path) {
+      // Only one instance of the DBMS is created between all discord servers
+      this.db = new sqlite3.Database(
+        db_path,
+        sqlite3.OPEN_READWRITE,
+        (err) => {
+          if (err) {
+            console.error(err.message);
+            this.db = null;
+          }
+          console.log('connected to the songs db');
+        },
+      );
+    }
+    else {
+      this.db = null;
+    }
+
     this._audioPlayer = createAudioPlayer();
     this._audioPlayer.on('error', (error: AudioPlayerError) => {
       console.error(`Error: ${error.message}`);
