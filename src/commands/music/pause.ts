@@ -6,10 +6,10 @@ export const pauseCommand = {
   command: new SlashCommandBuilder().setName('pause').setDescription('Pause the current song'),
   async execute(interaction: CommandInteraction) {
     if (musicPlayer.pause()) {
-      await interaction.reply('Paused current song');
+      await interaction.reply('Paused.');
     }
     else {
-      await interaction.reply('Song already paused');
+      await interaction.reply('Already paused');
     }
   },
 };

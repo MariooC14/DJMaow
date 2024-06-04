@@ -25,7 +25,7 @@ export const playCommand: Command = {
 
     // Don't join if the user is not in a channel
     if (!voiceChannel) {
-      await interaction.reply('You must be in a channel to listen to a song.');
+      await interaction.reply('You must be in a channel to request a song.');
       return;
     }
 
@@ -33,11 +33,11 @@ export const playCommand: Command = {
     if (!playlistLink && !songName) {
       if (musicPlayer.isConnected || musicPlayer.paused) {
         musicPlayer.unpause();
-        return await interaction.reply('Resumed song');
+        return await interaction.reply('Resumed.');
         // Handle user trying to resume a song when the bot is not playing anything.
       }
       else {
-        return await interaction.reply('No song to resume. If you are trying to play a song, make sure you are selecting the `song` option.');
+        return await interaction.reply('Nothing to resume. If you are trying to play a song, make sure you select the `song` option.');
       }
     }
 
@@ -58,7 +58,7 @@ export const playCommand: Command = {
         await interaction.followUp('Success! Added your playlist to the queue');
       }
       else {
-        return await interaction.editReply('Couldn\'t add your playlist. Maybe it was made private?');
+        return await interaction.editReply('Couldn\'t add your playlist. Maybe it is private?');
       }
     }
     else if (songName) {
@@ -85,7 +85,7 @@ export const playCommand: Command = {
 
       // Check if bot can join the voice channel
       if (!interaction.guild?.members.me?.permissionsIn(voiceChannel).has('Connect')) {
-        return await interaction.editReply('I could not join your voice channel. Maybe I don\'t have the permissions?');
+        return await interaction.editReply('I could not join your voice channel. Do I have the right permissions?');
       }
 
       // TODO: Fix this showing when a playlist failed to be added

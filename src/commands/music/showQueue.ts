@@ -9,7 +9,7 @@ export const showQueueCommand: Command = {
     const queue = musicPlayer.queue;
     if (queue !== undefined && queue.length !== 0) {
       let songCount = 0;
-      let queueDisplay = 'This is what is in the queue so far:\n';
+      let queueDisplay = 'Here\'s what\'s in the queue so far:\n';
       queue.forEach((song) => {queueDisplay += `${songCount++}.\t**${(decode(song.title || ''))}**\n`;});
       await interaction.reply(queueDisplay);
     }

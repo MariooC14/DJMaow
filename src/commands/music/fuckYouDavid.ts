@@ -15,7 +15,9 @@ export const fuckYouDavidCommand: Command = {
     // Join the channel the suer is in and start playing the best song for David.
     if (voiceChannel) {
       if (!musicPlayer.isConnected) {
-        await musicPlayer.searchForSong('DEMARKUS MCCLURE- FUCK YOU DAVID');
+        const davidSong = await musicPlayer.searchForSong('DEMARKUS MCCLURE- FUCK YOU DAVID');
+        // Add the song to the queue if it was found
+        davidSong && musicPlayer.addSongToQueue(davidSong);
         await musicPlayer.joinChannel(voiceChannel.id, interaction.guildId || '', interaction.guild?.voiceAdapterCreator);
         await musicPlayer.startPlaying();
       }
