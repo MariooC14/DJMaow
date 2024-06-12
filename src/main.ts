@@ -5,14 +5,13 @@ import { MusicPlayer } from './musicPlayer';
 import { registeredCommands } from './commands';
 import { AudioPlayerState } from '@discordjs/voice';
 import { interactionHandler } from './events/interactionCreate';
-import { createMusicPlayer } from './config';
 
 // TODO: Add multi-server support?
 const seconds = 1000;
 export let musicPlayer: MusicPlayer;
 
 async function main() {
-  musicPlayer = await createMusicPlayer();
+  musicPlayer = new MusicPlayer();
   if (musicPlayer === null) {
     console.error('Failed to create music player.');
     return 1;

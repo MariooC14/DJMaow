@@ -1,23 +1,24 @@
 /**
  * The music player class. This is the manager of plays, commands etc.
  */
-
 import {
   AudioPlayer,
   AudioPlayerError,
   AudioResource,
   createAudioPlayer,
-  createAudioResource, DiscordGatewayAdapterCreator,
+  createAudioResource,
+  DiscordGatewayAdapterCreator,
   joinVoiceChannel,
   VoiceConnection,
   VoiceConnectionStatus,
 } from '@discordjs/voice';
-import sqlite3 from 'sqlite3';
+import { supabase } from './supabase';
 import search, { YouTubeSearchResults } from 'youtube-search';
 import ytPlayer, { video_basic_info, YouTubeStream } from 'play-dl';
 import { Song } from './types';
-import { encode } from 'he';
 import queryString from 'querystring';
+import { config } from 'dotenv';
+config();
 
 // YouTube Search Options
 const opts = {
@@ -31,27 +32,24 @@ const opts = {
 export class MusicPlayer {
   private _queue: Song[] = [];
   private _currentSong: Song| undefined;
-  private _length: number;
   private _playing: boolean = false;
   private _paused: boolean = false;
-  private _audioPlayer: AudioPlayer;
+  private readonly _audioPlayer: AudioPlayer;
   private stream: YouTubeStream | undefined;
   private connection: VoiceConnection | null | undefined;
   private resource: AudioResource | undefined;
-  private db: sqlite3.Database | null;
-  private cachingEnabled = false;
 
   /**
-	 * Stores the YouTube Search Results into the database if the database exists
+	 * Caches the search results into firestore
 	 */
   private cacheSongResults = async (songs: YouTubeSearchResults[]) => {
-    if (!this.db || !this.cachingEnabled) return;
-    const sqlQuery = 'INSERT OR IGNORE INTO songs (title, videoId) VALUES (?, ?)';
-    songs.forEach((song: YouTubeSearchResults) => {
-      this.db?.run(sqlQuery, [song.title, song.id], (err) => {
-        if (err) console.log(err.message);
-      });
-    });
+    const toCache = songs.map(song => ({ title: song.title, video_id: song.id }));
+    const { error } = await supabase
+      .from('songs')
+      .upsert(toCache, { onConflict: 'video_id', ignoreDuplicates: false });
+    if (error) {
+      console.log('Error caching search results:', error?.message);
+    }
   };
 
 
@@ -69,7 +67,7 @@ export class MusicPlayer {
 	 * @returns the first song result
 	 */
   public searchForSong = async (title: string) => {
-    let song: Song | void = {} as Song;
+    let song: Song | null = {} as Song;
 
     // Check if song is a YouTube url
     if (title.startsWith('https://www.youtube.com/watch?v=') || title.startsWith('https://youtu.be/')) {
@@ -78,12 +76,13 @@ export class MusicPlayer {
       // Get the video's title given the url
       song.title = (await video_basic_info(title)).video_details.title;
     }
-    else if (this.db != null) {
-      song = await this.findSongInDB(title);
+    else {
+      song = await this.searchSongInDb(title);
+      console.log(song);
 
       // If there was no song found in the database, use the YouTube search API
       if (!song || !song?.title) {
-        console.log('Looking for song on YouTube');
+        console.log(`Looking for '${title}' on YouTube`);
 
         const ytSearchResults = await this.getSongsFromYouTube(title);
         const topMatch = ytSearchResults[0];
@@ -93,12 +92,6 @@ export class MusicPlayer {
       else {
         song.url = `https://www.youtube.com/watch?v=${song.videoId}`;
       }
-    }
-    // If caching is disabled, search youtube for the song
-    else {
-      const ytSearchResults = await this.getSongsFromYouTube(title);
-      const topMatch = ytSearchResults[0];
-      song = { title: topMatch?.title, url: topMatch?.link } as Song;
     }
 
     // If not even YouTube could find that song, don't add to queue.
@@ -305,18 +298,18 @@ export class MusicPlayer {
   /**
 	 * Looks for a song stored in the database
 	 */
-  private findSongInDB = async (title: string) => {
-
-    const sqlQuery = 'SELECT videoId, title FROM songs WHERE title LIKE ? LIMIT 1';
-    return new Promise<Song | void>((resolve) => {
-      // Sqlite stores the titles in encoded format. For example, the ' character is stored as &#39;
-      // The encode function makes sure the query takes that into account
-      this.db?.get(sqlQuery, ['%' + encode(title, { decimal:true }) + '%'], (err, row) => {
-        if (err) return console.error(err.message);
-        if (row) resolve({ ...row } as Song);
-        resolve();
-      });
-    });
+  private searchSongInDb = async (title: string) => {
+    const result = await supabase
+      .from('songs')
+      .select('title, video_id')
+      .textSearch('title', `'${title}'`)
+      .limit(1).single();
+    console.log(result);
+    if (!result.data) return null;
+    return {
+      title: result.data?.title,
+      videoId: result.data?.video_id,
+    } as Song;
   };
 
 
@@ -441,31 +434,8 @@ export class MusicPlayer {
 
   /**
    * Initiates the music player.
-   * If a database path is provided and caching is enabled, the player will cache song in the database
-   * It does not check if the db_path exists
-   * @param cachingEnabled
-   * @param db_path
    */
-  constructor(cachingEnabled: boolean, db_path?: string) {
-    this._length = 0;
-    if (cachingEnabled && db_path) {
-      // Only one instance of the DBMS is created between all discord servers
-      this.db = new sqlite3.Database(
-        db_path,
-        sqlite3.OPEN_READWRITE,
-        (err) => {
-          if (err) {
-            console.error(err.message);
-            this.db = null;
-          }
-          console.log('connected to the songs db');
-        },
-      );
-    }
-    else {
-      this.db = null;
-    }
-
+  constructor() {
     this._audioPlayer = createAudioPlayer();
     this._audioPlayer.on('error', (error: AudioPlayerError) => {
       console.error(`Error: ${error.message}`);
