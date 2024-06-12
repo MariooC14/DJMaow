@@ -28,15 +28,14 @@ export async function createMusicPlayer() {
   if (!validateVars()) process.exit(1);
   let config: any;
   try {
-    config = fs.readFileSync(MAOW_CONFIG_PATH, 'utf8');
-    console.log(config);
+    config = JSON.parse(fs.readFileSync(MAOW_CONFIG_PATH, 'utf8'));
   } catch (err) {
     if (err.code === 'ENOENT') {
       await createMaowConfigFile();
       config = fs.readFileSync(MAOW_CONFIG_PATH, 'utf8');
     }
   }
-  console.log(config);
+
   if (!config) {
     // Create a music player without caching
     console.warn('WARNING: No config file found. Caching will not be used');
@@ -46,5 +45,6 @@ export async function createMusicPlayer() {
   if (config['dbPath'] === '') {
     config['cachingEnabled'] = null;
   }
+
   return new MusicPlayer(config['cachingEnabled'], config['dbPath']);
 }

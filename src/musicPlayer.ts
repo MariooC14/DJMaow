@@ -39,13 +39,13 @@ export class MusicPlayer {
   private connection: VoiceConnection | null | undefined;
   private resource: AudioResource | undefined;
   private db: sqlite3.Database | null;
-  private cachingEnabled = false;
+  private _cachingEnabled = false;
 
   /**
 	 * Stores the YouTube Search Results into the database if the database exists
 	 */
   private cacheSongResults = async (songs: YouTubeSearchResults[]) => {
-    if (!this.db || !this.cachingEnabled) return;
+    if (!this.db || !this._cachingEnabled) return;
     const sqlQuery = 'INSERT OR IGNORE INTO songs (title, videoId) VALUES (?, ?)';
     songs.forEach((song: YouTubeSearchResults) => {
       this.db?.run(sqlQuery, [song.title, song.id], (err) => {
@@ -448,6 +448,7 @@ export class MusicPlayer {
    */
   constructor(cachingEnabled: boolean, db_path?: string) {
     this._length = 0;
+    this._cachingEnabled = cachingEnabled;
     if (cachingEnabled && db_path) {
       // Only one instance of the DBMS is created between all discord servers
       this.db = new sqlite3.Database(
